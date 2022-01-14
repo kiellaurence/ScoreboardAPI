@@ -3,19 +3,18 @@
 namespace scoreboard;
 
 use pocketmine\network\mcpe\protocol\ClientboundPacket;
-use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\RemoveObjectivePacket;
 use pocketmine\network\mcpe\protocol\SetDisplayObjectivePacket;
 use pocketmine\network\mcpe\protocol\SetScorePacket;
 use pocketmine\network\mcpe\protocol\types\ScorePacketEntry;
 use pocketmine\player\Player;
-use pocketmine\Server;
 
 class Scoreboard {
 
     private string $title;
     private string $objectName;
     private int $score = 0;
+    /** @var Player[] */
     private array $players = [];
 
     public function __construct(string $title, string $objectName, array $players = []) {
@@ -25,13 +24,7 @@ class Scoreboard {
     }
 
     public function createScoreboard() {
-        $pk = new SetDisplayObjectivePacket();
-        $pk->displaySlot = "sidebar";
-        $pk->objectiveName = $this->objectName;
-        $pk->displayName = $this->title;
-        $pk->criteriaName = "dummy";
-        $pk->sortOrder = 0;
-        $this->sendDataPacket($pk);
+        $this->sendDataPacket(SetDisplayObjectivePacket::create("sidebar", $this->objectName, $this->title, "dummy", 0));
     }
 
     public function addEntry(string $msg) {
@@ -41,26 +34,12 @@ class Scoreboard {
         $entry->customName = " $msg   ";
         $entry->score = $this->score;
         $entry->scoreboardId = $this->score;
-        $pk = new SetScorePacket();
-        $pk->type = 0;
-        $pk->entries[$this->score] = $entry;
-        $this->sendDataPacket($pk);
+        $this->sendDataPacket(SetScorePacket::create(0, [$this->score => $entry]));
         $this->score++;
     }
 
-    public function removeEntry(int $score) {
-        $pk = new SetScorePacket();
-        if (isset($pk->entries[$score])) {
-            unset($pk->entries[$score]);
-            $this->sendDataPacket($pk);
-        }
-    }
-
-    public function removeScoreboard()
-    {
-        $pk = new RemoveObjectivePacket();
-        $pk->objectiveName = $this->objectName;
-        $this->sendDataPacket($pk);
+    public function removeScoreboard() {
+        $this->sendDataPacket(RemoveObjectivePacket::create($this->objectName));
     }
 
     private function sendDataPacket(ClientboundPacket $packet) {
