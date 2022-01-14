@@ -1,0 +1,2 @@
+# ScoreboardAPI
+Create easy scoreboards
